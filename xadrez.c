@@ -45,8 +45,8 @@ void exibirTabuleiro(char** tabuleiro) {
 }
 
 void traduzirNotacao(char* notacao, int* linha, int* coluna) {
-    *coluna = notacao[0] - 'A';  // Traduz a coluna de A-H para 0-7
-    *linha = 8 - (notacao[1] - '1') - 1;  // Traduz a linha de 1-8 para 0-7
+    *coluna = notacao[0] - 'A';  
+    *linha = 8 - (notacao[1] - '1') - 1;  
 }
 
 bool validarEntrada(char* movimento) {
@@ -180,6 +180,5 @@ void jogar(){
 
 int main() {
    jogar();
-    
-    return 0;
+
 }
