@@ -2,183 +2,228 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct {
-    char capturadas[32]; 
-    char jogadas[100][5]; 
-    int capturasCount;   
-    int jogadasCount;    
-} Jogador;
+#define TAMANHO 8
 
-char** inicializarTabuleiro() {
-    char **tabuleiro = (char**) malloc(8 * sizeof(char*)); 
-    for (int i = 0; i < 8; i++) {
-        tabuleiro[i] = (char*) malloc(8 * sizeof(char));   
-    }
-    
-    tabuleiro[0][0] = 'T'; tabuleiro[0][1] = 'C'; tabuleiro[0][2] = 'B'; tabuleiro[0][3] = 'D';
-    tabuleiro[0][4] = 'R'; tabuleiro[0][5] = 'B'; tabuleiro[0][6] = 'C'; tabuleiro[0][7] = 'T';
-    for (int i = 0; i < 8; i++) tabuleiro[1][i] = '*';  
-    
-    tabuleiro[7][0] = 't'; tabuleiro[7][1] = 'c'; tabuleiro[7][2] = 'b'; tabuleiro[7][3] = 'd';
-    tabuleiro[7][4] = 'r'; tabuleiro[7][5] = 'b'; tabuleiro[7][6] = 'c'; tabuleiro[7][7] = 't';
-    for (int i = 0; i < 8; i++) tabuleiro[6][i] = '@';  
-    
-    for (int i = 2; i < 6; i++) {
-        for (int j = 0; j < 8; j++) {
-            tabuleiro[i][j] = ' ';
+// Estrutura para representar uma peça
+typedef struct {
+    char tipo;    // Símbolo da peça
+    char cor;     // 'B' para brancas, 'P' para pretas
+} Peca;
+
+// Função para inicializar o tabuleiro
+Peca** inicializa_tabuleiro() {
+    Peca **tabuleiro = (Peca**)malloc(TAMANHO * sizeof(Peca*));
+    for (int i = 0; i < TAMANHO; i++) {
+        tabuleiro[i] = (Peca*)malloc(TAMANHO * sizeof(Peca));
+        for (int j = 0; j < TAMANHO; j++) {
+            tabuleiro[i][j].tipo = ' '; // Casa vazia
+            tabuleiro[i][j].cor = ' ';
         }
     }
     
+    // Posicionar as peças brancas e pretas
+    // Peões
+    for (int j = 0; j < TAMANHO; j++) {
+        tabuleiro[1][j].tipo = '@'; // Peão preto
+        tabuleiro[1][j].cor = 'P';
+        tabuleiro[6][j].tipo = '*'; // Peão branco
+        tabuleiro[6][j].cor = 'B';
+    }
+    
+    // Torres
+    tabuleiro[0][0].tipo = tabuleiro[0][7].tipo = 't';
+    tabuleiro[0][0].cor = tabuleiro[0][7].cor = 'P';
+    tabuleiro[7][0].tipo = tabuleiro[7][7].tipo = 'T';
+    tabuleiro[7][0].cor = tabuleiro[7][7].cor = 'B';
+
+    // Cavalos
+    tabuleiro[0][1].tipo = tabuleiro[0][6].tipo = 'c';
+    tabuleiro[0][1].cor = tabuleiro[0][6].cor = 'P';
+    tabuleiro[7][1].tipo = tabuleiro[7][6].tipo = 'C';
+    tabuleiro[7][1].cor = tabuleiro[7][6].cor = 'B';
+
+    // Bispos
+    tabuleiro[0][2].tipo = tabuleiro[0][5].tipo = 'b';
+    tabuleiro[0][2].cor = tabuleiro[0][5].cor = 'P';
+    tabuleiro[7][2].tipo = tabuleiro[7][5].tipo = 'B';
+    tabuleiro[7][2].cor = tabuleiro[7][5].cor = 'B';
+
+    // Damas
+    tabuleiro[0][3].tipo = 'd';
+    tabuleiro[0][3].cor = 'P';
+    tabuleiro[7][3].tipo = 'D';
+    tabuleiro[7][3].cor = 'B';
+
+    // Reis
+    tabuleiro[0][4].tipo = 'r';
+    tabuleiro[0][4].cor = 'P';
+    tabuleiro[7][4].tipo = 'R';
+    tabuleiro[7][4].cor = 'B';
+
     return tabuleiro;
 }
 
-void exibirTabuleiro(char** tabuleiro) {
-    printf("\n  A B C D E F G H\n");
-    for (int i = 0; i < 8; i++) {
-        printf("%d ", 8 - i);
-        for (int j = 0; j < 8; j++) {
-            printf("%c ", tabuleiro[i][j]);
+// Função para desenhar o tabuleiro
+void desenha_tabuleiro(Peca **tabuleiro) {
+    printf("  A B C D E F G H\n");
+    for (int i = 0; i < TAMANHO; i++) {
+        printf("%d ", TAMANHO - i);
+        for (int j = 0; j < TAMANHO; j++) {
+            printf("%c ", tabuleiro[i][j].tipo);
         }
-        printf(" %d\n", 8 - i);
+        printf("%d\n", TAMANHO - i);
     }
     printf("  A B C D E F G H\n");
 }
 
-void traduzirNotacao(char* notacao, int* linha, int* coluna) {
-    *coluna = notacao[0] - 'A';  
-    *linha = 8 - (notacao[1] - '1') - 1;  
+// Função para converter a notação algébrica em coordenadas
+void converte_posicao(char coluna, int linha, int *x, int *y) {
+    *y = coluna - 'A';  // Coluna A-H para índice 0-7
+    *x = TAMANHO - linha;  // Linha 1-8 para índice 7-0
 }
 
-bool validarEntrada(char* movimento) {
-    if (movimento[0] < 'A' || movimento[0] > 'H') return false;
-    if (movimento[1] < '1' || movimento[1] > '8') return false;
-    if (movimento[2] < 'A' || movimento[2] > 'H') return false;
-    if (movimento[3] < '1' || movimento[3] > '8') return false;
+bool movimento_peao(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final, int y_final) {
+    Peca peca = tabuleiro[x_inicial][y_inicial];
+    int direcao = (peca.cor == 'B') ? -1 : 1;  // Peões brancos sobem, pretos descem
+    
+    // Movendo para frente
+    if (y_inicial == y_final) {
+        if (x_final == x_inicial + direcao && tabuleiro[x_final][y_final].tipo == ' ') {
+            return true;
+        }
+        if ((x_inicial == 1 && peca.cor == 'P') || (x_inicial == 6 && peca.cor == 'B')) {
+            if (x_final == x_inicial + 2 * direcao && tabuleiro[x_final][y_final].tipo == ' ' && tabuleiro[x_inicial + direcao][y_inicial].tipo == ' ') {
+                return true;
+            }
+        }
+    }
+    
+    // Captura diagonal
+    if (abs(y_inicial - y_final) == 1 && x_final == x_inicial + direcao && tabuleiro[x_final][y_final].tipo != ' ' && tabuleiro[x_final][y_final].cor != peca.cor) {
+        return true;
+    }
+
+    return false;
+}
+
+bool movimento_torre(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final, int y_final) {
+    if (x_inicial != x_final && y_inicial != y_final) {
+        return false; // Movimentos diagonais não são permitidos
+    }
+    
+    // Verificar se há peças no caminho
+    if (x_inicial == x_final) {
+        int delta = (y_final > y_inicial) ? 1 : -1;
+        for (int j = y_inicial + delta; j != y_final; j += delta) {
+            if (tabuleiro[x_inicial][j].tipo != ' ') {
+                return false;
+            }
+        }
+    } else {
+        int delta = (x_final > x_inicial) ? 1 : -1;
+        for (int i = x_inicial + delta; i != x_final; i += delta) {
+            if (tabuleiro[i][y_inicial].tipo != ' ') {
+                return false;
+            }
+        }
+    }
     return true;
 }
 
-void copiarJogada(char* destino, const char* origem) {
-    for (int i = 0; i < 4; i++) {
-        destino[i] = origem[i];
-    }
-    destino[4] = '\0';  
+bool movimento_cavalo(int x_inicial, int y_inicial, int x_final, int y_final) {
+    return (abs(x_inicial - x_final) == 2 && abs(y_inicial - y_final) == 1) || 
+           (abs(x_inicial - x_final) == 1 && abs(y_inicial - y_final) == 2);
 }
 
-bool moverPeca(char** tabuleiro, char* movimento, Jogador* jogadorAtual, Jogador* oponente) {
-    if (!validarEntrada(movimento)) {
-        printf("Entrada invÃ¡lida! Use o formato correto (ex: E2E4).\n");
+bool movimento_bispo(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final, int y_final) {
+    if (abs(x_inicial - x_final) != abs(y_inicial - y_final)) {
         return false;
     }
 
-    int linhaOrigem, colunaOrigem, linhaDestino, colunaDestino;
-    char pecaCapturada;
-    
-    traduzirNotacao(movimento, &linhaOrigem, &colunaOrigem);
-    traduzirNotacao(movimento + 2, &linhaDestino, &colunaDestino);
-    
-    char peca = tabuleiro[linhaOrigem][colunaOrigem];
-    if (peca == ' ') {
-        printf("Movimento invÃ¡lido! Nenhuma peÃ§a na posiÃ§Ã£o de origem.\n");
-        return false;
+    int delta_x = (x_final > x_inicial) ? 1 : -1;
+    int delta_y = (y_final > y_inicial) ? 1 : -1;
+    for (int i = x_inicial + delta_x, j = y_inicial + delta_y; i != x_final; i += delta_x, j += delta_y) {
+        if (tabuleiro[i][j].tipo != ' ') {
+            return false;
+        }
     }
-
-    pecaCapturada = tabuleiro[linhaDestino][colunaDestino];
-    if (pecaCapturada != ' ') {
-        jogadorAtual->capturadas[jogadorAtual->capturasCount++] = pecaCapturada;
-    }
-
-    tabuleiro[linhaDestino][colunaDestino] = tabuleiro[linhaOrigem][colunaOrigem];
-    tabuleiro[linhaOrigem][colunaOrigem] = ' ';
-
-    copiarJogada(jogadorAtual->jogadas[jogadorAtual->jogadasCount++], movimento);
 
     return true;
 }
 
-bool verificarXequeMate(char** tabuleiro, char rei, int linhaRei, int colunaRei) {
-    int direcoes[8][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
-    
-    for (int i = 0; i < 8; i++) {
-        int novaLinha = linhaRei + direcoes[i][0];
-        int novaColuna = colunaRei + direcoes[i][1];
-
-        if (novaLinha >= 0 && novaLinha < 8 && novaColuna >= 0 && novaColuna < 8) {
-            if (tabuleiro[novaLinha][novaColuna] == ' ')
-                return false; 
-        }
-    }
-    return true; 
+bool movimento_rainha(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final, int y_final) {
+    return movimento_torre(tabuleiro, x_inicial, y_inicial, x_final, y_final) || 
+           movimento_bispo(tabuleiro, x_inicial, y_inicial, x_final, y_final);
 }
 
-void exibirJogadasCapturas(Jogador* jogadorA, Jogador* jogadorB, char* nomeJogadorA, char* nomeJogadorB) {
-    printf("\nJogador %s - Pecas capturadas: ", nomeJogadorA);
-    for (int i = 0; i < jogadorA->capturasCount; i++) {
-        printf("%c ", jogadorA->capturadas[i]);
-    }
-    printf("\nJogador %s - Pecas capturadas: ", nomeJogadorB);
-    for (int i = 0; i < jogadorB->capturasCount; i++) {
-        printf("%c ", jogadorB->capturadas[i]);
-    }
-    printf("\nJogadas ja feitas:\n");
-    printf("A: ");
-    for (int i = 0; i < jogadorA->jogadasCount; i++) {
-        printf("%s ", jogadorA->jogadas[i]);
-    }
-    printf("\nB: ");
-    for (int i = 0; i < jogadorB->jogadasCount; i++) {
-        printf("%s ", jogadorB->jogadas[i]);
-    }
-    printf("\n");
+bool movimento_rei(int x_inicial, int y_inicial, int x_final, int y_final) {
+    return abs(x_inicial - x_final) <= 1 && abs(y_inicial - y_final) <= 1;
 }
 
-void jogar(){
-     char** tabuleiro = inicializarTabuleiro();
-    Jogador jogadorA = {.capturasCount = 0, .jogadasCount = 0};
-    Jogador jogadorB = {.capturasCount = 0, .jogadasCount = 0};
-    bool xequeMate = false;
-    char movimento[5];
-    int turno = 1;
-    int linhaReiA = 0, colunaReiA = 4;
-    int linhaReiB = 7, colunaReiB = 4; 
-    char nomeJogadorA[50], nomeJogadorB[50];
-
-    printf("Digite o nome do jogador A: ");
-    scanf("%s", nomeJogadorA);
+// Função para mover uma peça
+bool mover_peca(Peca **tabuleiro, char col_inicial, int lin_inicial, char col_final, int lin_final) {
+    int x_inicial, y_inicial, x_final, y_final;
+    converte_posicao(col_inicial, lin_inicial, &x_inicial, &y_inicial);
+    converte_posicao(col_final, lin_final, &x_final, &y_final);
     
-    printf("Digite o nome do jogador B: ");
-    scanf("%s", nomeJogadorB);
+    Peca peca = tabuleiro[x_inicial][y_inicial];
 
-    while (!xequeMate) {
-        exibirTabuleiro(tabuleiro);
-        if (turno % 2 == 1) {
-            printf("\nJogador %s, sua vez. Insira seu movimento: ", nomeJogadorA);
-            scanf("%s", movimento);
-            if (moverPeca(tabuleiro, movimento, &jogadorA, &jogadorB)) {
-                xequeMate = verificarXequeMate(tabuleiro, 'R', linhaReiA, colunaReiA);
-                if (xequeMate) {
-                    printf("ParabÃ©ns, %s! VocÃª venceu o jogo!\n", nomeJogadorA);
-                    break;
-                }
-            }
-        } else {
-            printf("\nJogador %s, sua vez. Insira seu movimento: ", nomeJogadorB);
-            scanf("%s", movimento);
-            if (moverPeca(tabuleiro, movimento, &jogadorB, &jogadorA)) {
-                xequeMate = verificarXequeMate(tabuleiro, 'r', linhaReiB, colunaReiB);
-                if (xequeMate) {
-                    printf("ParabÃ©ns, %s! VocÃª venceu o jogo!\n", nomeJogadorB);
-                    break;
-                }
-            }
-        }
-        turno++;
+    if (peca.tipo == ' ') {
+        printf("Não há peça na posição de origem.\n");
+        return false;
     }
 
-    exibirJogadasCapturas(&jogadorA, &jogadorB, nomeJogadorA, nomeJogadorB);
+    // Validação dos movimentos de acordo com o tipo de peça
+    bool movimento_valido = false;
+    switch (peca.tipo) {
+        case '@':
+        case '*': movimento_valido = movimento_peao(tabuleiro, x_inicial, y_inicial, x_final, y_final); break;
+        case 't':
+        case 'T': movimento_valido = movimento_torre(tabuleiro, x_inicial, y_inicial, x_final, y_final); break;
+        case 'c':
+        case 'C': movimento_valido = movimento_cavalo(x_inicial, y_inicial, x_final, y_final); break;
+        case 'b':
+        case 'B': movimento_valido = movimento_bispo(tabuleiro, x_inicial, y_inicial, x_final, y_final); break;
+        case 'd':
+        case 'D': movimento_valido = movimento_rainha(tabuleiro, x_inicial, y_inicial, x_final, y_final); break;
+        case 'r':
+        case 'R': movimento_valido = movimento_rei(x_inicial, y_inicial, x_final, y_final); break;
+        default: return false;
+    }
 
+    if (movimento_valido) {
+        tabuleiro[x_final][y_final] = peca;
+        tabuleiro[x_inicial][y_inicial].tipo = ' ';
+        tabuleiro[x_inicial][y_inicial].cor = ' ';
+        return true;
+    } else {
+        printf("Movimento inválido.\n");
+        return false;
+    }
 }
 
 int main() {
-   jogar();
+    Peca **tabuleiro = inicializa_tabuleiro();
+    
+    char col_inicial, col_final;
+    int lin_inicial, lin_final;
+    bool jogo_continua = true;
 
+    while (jogo_continua) {
+        desenha_tabuleiro(tabuleiro);
+        
+        printf("Informe a jogada (e.g., E2 E4): ");
+        scanf(" %c%d %c%d", &col_inicial, &lin_inicial, &col_final, &lin_final);
+        
+        if (!mover_peca(tabuleiro, col_inicial, lin_inicial, col_final, lin_final)) {
+            printf("Jogada inválida. Tente novamente.\n");
+        }
+    }
+    
+    for (int i = 0; i < TAMANHO; i++) {
+        free(tabuleiro[i]);
+    }
+    free(tabuleiro);
+
+    return 0;
 }
