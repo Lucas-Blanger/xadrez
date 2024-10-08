@@ -1,32 +1,51 @@
+/*
+Nome: Lucas Blanger
+Disciplina: Laboratório de Programação II
+Trabalho 1
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 #define TAMANHO 8
+#define MAX_JOGADAS 200
 
-// Estrutura para representar uma peça
 typedef struct {
-    char tipo;    // Símbolo da peça
-    char cor;     // 'B' para brancas, 'P' para pretas
+    char tipo;    
+    char cor;     
 } Peca;
 
-// Função para inicializar o tabuleiro
+typedef struct {
+    char jogada[6];  
+} Jogada;
+
+Jogada jogadas[MAX_JOGADAS];
+int jogada_count = 0;
+
+char capturas_brancas[MAX_JOGADAS];  
+int capturas_brancas_count = 0;
+
+char capturas_pretas[MAX_JOGADAS];   
+int capturas_pretas_count = 0;
+
+bool mover_peca(Peca **tabuleiro, char col_inicial, int lin_inicial, char col_final, int lin_final);
+
+
 Peca** inicializa_tabuleiro() {
     Peca **tabuleiro = (Peca**)malloc(TAMANHO * sizeof(Peca*));
     for (int i = 0; i < TAMANHO; i++) {
         tabuleiro[i] = (Peca*)malloc(TAMANHO * sizeof(Peca));
         for (int j = 0; j < TAMANHO; j++) {
-            tabuleiro[i][j].tipo = ' '; // Casa vazia
+            tabuleiro[i][j].tipo = ' '; 
             tabuleiro[i][j].cor = ' ';
         }
     }
     
-    // Posicionar as peças brancas e pretas
-    // Peões
     for (int j = 0; j < TAMANHO; j++) {
-        tabuleiro[1][j].tipo = '@'; // Peão preto
+        tabuleiro[1][j].tipo = '@'; 
         tabuleiro[1][j].cor = 'P';
-        tabuleiro[6][j].tipo = '*'; // Peão branco
+        tabuleiro[6][j].tipo = '*';
         tabuleiro[6][j].cor = 'B';
     }
     
@@ -63,9 +82,8 @@ Peca** inicializa_tabuleiro() {
     return tabuleiro;
 }
 
-// Função para desenhar o tabuleiro
 void desenha_tabuleiro(Peca **tabuleiro) {
-    printf("  A B C D E F G H\n");
+    printf("\n  A B C D E F G H\n");
     for (int i = 0; i < TAMANHO; i++) {
         printf("%d ", TAMANHO - i);
         for (int j = 0; j < TAMANHO; j++) {
@@ -76,17 +94,15 @@ void desenha_tabuleiro(Peca **tabuleiro) {
     printf("  A B C D E F G H\n");
 }
 
-// Função para converter a notação algébrica em coordenadas
 void converte_posicao(char coluna, int linha, int *x, int *y) {
-    *y = coluna - 'A';  // Coluna A-H para índice 0-7
-    *x = TAMANHO - linha;  // Linha 1-8 para índice 7-0
+    *y = coluna - 'A';  
+    *x = TAMANHO - linha;  
 }
 
 bool movimento_peao(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final, int y_final) {
     Peca peca = tabuleiro[x_inicial][y_inicial];
-    int direcao = (peca.cor == 'B') ? -1 : 1;  // Peões brancos sobem, pretos descem
+    int direcao = (peca.cor == 'B') ? -1 : 1;  
     
-    // Movendo para frente
     if (y_inicial == y_final) {
         if (x_final == x_inicial + direcao && tabuleiro[x_final][y_final].tipo == ' ') {
             return true;
@@ -98,7 +114,6 @@ bool movimento_peao(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final,
         }
     }
     
-    // Captura diagonal
     if (abs(y_inicial - y_final) == 1 && x_final == x_inicial + direcao && tabuleiro[x_final][y_final].tipo != ' ' && tabuleiro[x_final][y_final].cor != peca.cor) {
         return true;
     }
@@ -108,10 +123,9 @@ bool movimento_peao(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final,
 
 bool movimento_torre(Peca **tabuleiro, int x_inicial, int y_inicial, int x_final, int y_final) {
     if (x_inicial != x_final && y_inicial != y_final) {
-        return false; // Movimentos diagonais não são permitidos
+        return false; 
     }
     
-    // Verificar se há peças no caminho
     if (x_inicial == x_final) {
         int delta = (y_final > y_inicial) ? 1 : -1;
         for (int j = y_inicial + delta; j != y_final; j += delta) {
@@ -160,20 +174,100 @@ bool movimento_rei(int x_inicial, int y_inicial, int x_final, int y_final) {
     return abs(x_inicial - x_final) <= 1 && abs(y_inicial - y_final) <= 1;
 }
 
-// Função para mover uma peça
+bool esta_em_xeque(Peca **tabuleiro, char cor) {
+    int x_rei, y_rei;
+
+    for (int i = 0; i < TAMANHO; i++) {
+        for (int j = 0; j < TAMANHO; j++) {
+            if (tabuleiro[i][j].tipo == (cor == 'B' ? 'R' : 'r')) {
+                x_rei = i;
+                y_rei = j;
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < TAMANHO; i++) {
+        for (int j = 0; j < TAMANHO; j++) {
+            if (tabuleiro[i][j].cor != cor && tabuleiro[i][j].tipo != ' ') {
+                bool pode_atacar = false;
+                switch (tabuleiro[i][j].tipo) {
+                    case '@':
+                    case '*': pode_atacar = movimento_peao(tabuleiro, i, j, x_rei, y_rei); break;
+                    case 't':
+                    case 'T': pode_atacar = movimento_torre(tabuleiro, i, j, x_rei, y_rei); break;
+                    case 'c':
+                    case 'C': pode_atacar = movimento_cavalo(i, j, x_rei, y_rei); break;
+                    case 'b':
+                    case 'B': pode_atacar = movimento_bispo(tabuleiro, i, j, x_rei, y_rei); break;
+                    case 'd':
+                    case 'D': pode_atacar = movimento_rainha(tabuleiro, i, j, x_rei, y_rei); break;
+                    case 'r':
+                    case 'R': pode_atacar = movimento_rei(i, j, x_rei, y_rei); break;
+                }
+                if (pode_atacar) {
+                    return true; 
+                }
+            }
+        }
+    }
+
+    return false; 
+}
+
+bool esta_em_xeque_mate(Peca **tabuleiro, char cor) {
+    if (!esta_em_xeque(tabuleiro, cor)) {
+        return false; 
+    }
+
+    for (int i = 0; i < TAMANHO; i++) {
+        for (int j = 0; j < TAMANHO; j++) {
+            if (tabuleiro[i][j].cor == cor) {
+                for (int x = 0; x < TAMANHO; x++) {
+                    for (int y = 0; y < TAMANHO; y++) {
+                        Peca **tabuleiro_temp = inicializa_tabuleiro(); 
+                        for (int m = 0; m < TAMANHO; m++) {
+                            for (int n = 0; n < TAMANHO; n++) {
+                                tabuleiro_temp[m][n] = tabuleiro[m][n];
+                            }
+                        }
+
+                        if (mover_peca(tabuleiro_temp, 'A' + j, TAMANHO - i, 'A' + y, TAMANHO - x)) {
+                            if (!esta_em_xeque(tabuleiro_temp, cor)) {
+                                for (int m = 0; m < TAMANHO; m++) {
+                                    free(tabuleiro_temp[m]);
+                                }
+                                free(tabuleiro_temp);
+                                return false;
+                            }
+                        }
+
+                        for (int m = 0; m < TAMANHO; m++) {
+                            free(tabuleiro_temp[m]);
+                        }
+                        free(tabuleiro_temp);
+                    }
+                }
+            }
+        }
+    }
+
+    return true; 
+}
+
 bool mover_peca(Peca **tabuleiro, char col_inicial, int lin_inicial, char col_final, int lin_final) {
     int x_inicial, y_inicial, x_final, y_final;
     converte_posicao(col_inicial, lin_inicial, &x_inicial, &y_inicial);
     converte_posicao(col_final, lin_final, &x_final, &y_final);
-    
+
     Peca peca = tabuleiro[x_inicial][y_inicial];
+    Peca destino = tabuleiro[x_final][y_final];
 
     if (peca.tipo == ' ') {
         printf("Não há peça na posição de origem.\n");
         return false;
     }
 
-    // Validação dos movimentos de acordo com o tipo de peça
     bool movimento_valido = false;
     switch (peca.tipo) {
         case '@':
@@ -192,9 +286,30 @@ bool mover_peca(Peca **tabuleiro, char col_inicial, int lin_inicial, char col_fi
     }
 
     if (movimento_valido) {
+        snprintf(jogadas[jogada_count].jogada, sizeof(jogadas[jogada_count].jogada), "%c%d %c%d", col_inicial, lin_inicial, col_final, lin_final);
+        jogada_count++;
+
+        if (destino.tipo != ' ') {
+            if (peca.cor == 'B') {
+                capturas_brancas[capturas_brancas_count++] = destino.tipo;
+            } else {
+                capturas_pretas[capturas_pretas_count++] = destino.tipo;
+            }
+        }
+
         tabuleiro[x_final][y_final] = peca;
         tabuleiro[x_inicial][y_inicial].tipo = ' ';
         tabuleiro[x_inicial][y_inicial].cor = ' ';
+
+        if (esta_em_xeque_mate(tabuleiro, 'B')) {
+            printf("Xeque-mate! Pretas venceram.\n");
+            return true;
+        }
+        if (esta_em_xeque_mate(tabuleiro, 'P')) {
+            printf("Xeque-mate! Brancas venceram.\n");
+            return true;
+        }
+
         return true;
     } else {
         printf("Movimento inválido.\n");
@@ -202,24 +317,44 @@ bool mover_peca(Peca **tabuleiro, char col_inicial, int lin_inicial, char col_fi
     }
 }
 
+void mostra_jogadas_e_capturas() {
+    printf("\nJogadas realizadas:\n");
+    for (int i = 0; i < jogada_count; i++) {
+        printf("%d. %s\n", i + 1, jogadas[i].jogada);
+    }
+
+    printf("Peças capturadas pelas brancas: ");
+    for (int i = 0; i < capturas_brancas_count; i++) {
+        printf("%c ", capturas_brancas[i]);
+    }
+    printf("\n");
+
+    printf("Peças capturadas pelas pretas: ");
+    for (int i = 0; i < capturas_pretas_count; i++) {
+        printf("%c ", capturas_pretas[i]);
+    }
+    printf("\n");
+}
+
 int main() {
     Peca **tabuleiro = inicializa_tabuleiro();
-    
+
     char col_inicial, col_final;
     int lin_inicial, lin_final;
     bool jogo_continua = true;
 
     while (jogo_continua) {
         desenha_tabuleiro(tabuleiro);
-        
-        printf("Informe a jogada (e.g., E2 E4): ");
+        mostra_jogadas_e_capturas();
+
+        printf("Informe a jogada (EX: E2 E4): ");
         scanf(" %c%d %c%d", &col_inicial, &lin_inicial, &col_final, &lin_final);
-        
+
         if (!mover_peca(tabuleiro, col_inicial, lin_inicial, col_final, lin_final)) {
             printf("Jogada inválida. Tente novamente.\n");
         }
     }
-    
+
     for (int i = 0; i < TAMANHO; i++) {
         free(tabuleiro[i]);
     }
