@@ -1,44 +1,36 @@
-Este projeto foi desenvolvido como parte da disciplina de Laboratório de Programação II, do curso de Ciência da Computação da Universidade Federal de Santa Maria.
-Descrição
+# Chess Game in C
 
-O programa implementa um jogo de xadrez simplificado que permite aos jogadores realizar jogadas no tabuleiro e verificar se uma jogada resulta em xeque ou xeque-mate. Ele mantém o histórico de jogadas e peças capturadas durante a partida.
+This project was developed as part of the Programming Laboratory II course in the Computer Science program at the Federal University of Santa Maria.
 
-O tabuleiro é inicializado com as peças nas posições padrões do jogo de xadrez, e o programa oferece funcionalidades para movimentar as peças e capturar peças adversárias, além de verificar se o rei está em xeque ou se ocorreu um xeque-mate.
-Funcionalidades:
+## Description
 
-  Inicialização do tabuleiro de xadrez com peças brancas e pretas;
-  Validação de movimentos para peças como peões, torres, cavalos, bispos, rainhas e reis;
-  Detecção de xeque e xeque-mate;
-  Registro de jogadas e captura de peças;
-  Exibição das jogadas realizadas e das peças capturadas.
+The program implements a simplified chess game that allows players to make moves on the board and check if a move results in check or checkmate. It keeps a record of the moves and the captured pieces during the game.
 
-### Estrutura
+The board is initialized with the pieces in the standard chess starting positions, and the program provides functionalities for moving pieces and capturing opponent pieces, as well as checking if the king is in check or if a checkmate has occurred.
 
-O código está organizado da seguinte forma:
+## Features
 
-  Peca: Estrutura que representa uma peça de xadrez, contendo o tipo e a cor da peça.
-  Jogada: Estrutura que armazena uma jogada, contendo a descrição da jogada realizada.
-  Tabuleiro: O tabuleiro de xadrez é representado por uma matriz 8x8 de ponteiros para peças.
+- Initialization of the chessboard with white and black pieces;
+- Validation of moves for pieces such as pawns, rooks, knights, bishops, queens, and kings;
+- Detection of check and checkmate;
+- Recording of moves and piece captures;
+- Display of the moves made and captured pieces.
 
-### Como Jogar
+## Structure
 
-  O programa exibe o tabuleiro e solicita que o jogador insira uma jogada no formato coluna linha coluna linha (exemplo: E2 E4).
-  O jogador deve inserir jogadas válidas de acordo com as regras do xadrez.
-  O jogo verifica se a jogada é válida e atualiza o tabuleiro.
-  As capturas e jogadas são registradas, e o programa continua até que ocorra um xeque-mate.
+The code is organized as follows:
 
-### Requisitos
+- **Piece**: Structure representing a chess piece, containing the type and color of the piece.
+- **Move**: Structure that stores a move, containing a description of the move made.
+- **Board**: The chessboard is represented by an 8x8 matrix of pointers to pieces.
 
-  Compilador compatível com C (por exemplo, gcc).
+## How to Play
 
-### Compilação
+1. The program displays the board and asks the player to input a move in the format column row column row (e.g., `E2 E4`).
+2. The player must enter valid moves according to chess rules.
+3. The game checks if the move is valid and updates the board.
+4. Captures and moves are recorded, and the program continues until a checkmate occurs.
 
-    gcc -o xadrez xadrez.c
+## Author
 
-### Execução
-
-    ./xadrez
-
-### Autor
-
-  Lucas Blanger - Desenvolvido como parte da disciplina de Laboratório de Programação II na Universidade Federal de Santa Maria (UFSM).
+Lucas Blanger - Developed as part of the Programming Laboratory II course at the Federal University of Santa Maria (UFSM).
